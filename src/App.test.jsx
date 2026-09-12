@@ -99,6 +99,55 @@ describe('Todo App', () => {
     const addButton = screen.getByRole('button', { name: /add/i });
     await user.click(addButton);
 
-    expect(screen.getByText('Please enter a todo item')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Please enter a todo item');
+  });
+
+  it('shows an error and prevents adding duplicate todos (case-insensitive)', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const input = screen.getByPlaceholderText('What do you need to do?');
+    const addButton = screen.getByRole('button', { name: /add/i });
+
+    await user.type(input, 'Buy groceries');
+    await user.click(addButton);
+    expect(screen.getByText('Buy groceries')).toBeInTheDocument();
+
+    // Try adding the same todo in different case
+    await user.type(input, 'BUY GROCERIES');
+    await user.click(addButton);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Todo already exists in the list');
+    expect(screen.getAllByText(/buy groceries/i)).toHaveLength(1);
+  });
+
+  it('shows an error when todo exceeds 100 characters', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const input = screen.getByPlaceholderText('What do you need to do?');
+    const addButton = screen.getByRole('button', { name: /add/i });
+
+    const longText = 'a'.repeat(101);
+    await user.type(input, longText);
+    await user.click(addButton);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Todo cannot exceed 100 characters');
+    expect(screen.queryByText(longText)).not.toBeInTheDocument();
+  });
+
+  it('clears error message when the user starts typing', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const input = screen.getByPlaceholderText('What do you need to do?');
+    const addButton = screen.getByRole('button', { name: /add/i });
+
+    await user.click(addButton);
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+
+    await user.type(input, 'N');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
+

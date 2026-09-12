@@ -38,6 +38,19 @@ export default function App() {
       return;
     }
 
+    if (trimmed.length > 100) {
+      setError('Todo cannot exceed 100 characters');
+      return;
+    }
+
+    const isDuplicate = todos.some(
+      (todo) => todo.text.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (isDuplicate) {
+      setError('Todo already exists in the list');
+      return;
+    }
+
     const newTodo = {
       id: Date.now().toString(),
       text: trimmed,
@@ -76,13 +89,19 @@ export default function App() {
             if (error) setError('');
           }}
           aria-label="What do you need to do?"
+          aria-invalid={!!error}
+          aria-describedby={error ? 'todo-error' : undefined}
         />
         <button type="submit" className="add-btn">
           Add
         </button>
       </form>
 
-      {error && <p className="error-message">{error}</p>}
+      {error && (
+        <p id="todo-error" className="error-message" role="alert">
+          {error}
+        </p>
+      )}
 
       <hr className="divider" />
 
