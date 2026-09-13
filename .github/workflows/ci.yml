@@ -1,13 +1,15 @@
-name: CI
+name: CI & Automated PR Review
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+    types: [ opened, synchronize, reopened ]
 
 jobs:
   build-and-test:
+    name: Build & Test
     runs-on: ubuntu-latest
 
     steps:
@@ -28,3 +30,68 @@ jobs:
 
       - name: Build for production
         run: npm run build
+
+  automated-review-and-merge:
+    name: Automated PR Review & Auto-Merge
+    runs-on: ubuntu-latest
+    needs: [ build-and-test ]
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run Automated Review
+        id: review
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          node .github/scripts/review-pr.cjs
+
+      - name: Submit PR Review
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DECISION: ${{ steps.review.outputs.decision }}
+        run: |
+          echo "Submitting automated review: $DECISION"
+          if [ "$DECISION" = "APPROVE" ]; then
+            if ! gh pr review "$PR_NUMBER" --approve --body-file pr_review_body.md; then
+              echo "Notice: Repository permissions prevented approving review via GITHUB_TOKEN. Submitting review comment instead."
+              gh pr review "$PR_NUMBER" --comment --body-file pr_review_body.md || gh pr comment "$PR_NUMBER" --body-file pr_review_body.md
+            fi
+          else
+            if ! gh pr review "$PR_NUMBER" --request-changes --body-file pr_review_body.md; then
+              echo "Notice: Repository permissions prevented request-changes review via GITHUB_TOKEN. Submitting review comment instead."
+              gh pr review "$PR_NUMBER" --comment --body-file pr_review_body.md || gh pr comment "$PR_NUMBER" --body-file pr_review_body.md
+            fi
+          fi
+
+      - name: Auto-Merge Pull Request
+        if: steps.review.outputs.decision == 'APPROVE'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "Attempting auto-merge for PR #$PR_NUMBER..."
+          if gh pr merge "$PR_NUMBER" --squash --delete-branch; then
+            echo "Successfully auto-merged PR #$PR_NUMBER."
+          else
+            echo "::warning ::Auto-merge could not be executed directly. Check repository branch protection, approval requirements, or auto-merge permissions for GITHUB_TOKEN."
+          fi
+
+      - name: Block Pipeline If Changes Requested
+        if: steps.review.outputs.decision != 'APPROVE'
+        run: |
+          echo "Automated review requested changes. Failing workflow to prevent merge."
+          exit 1
