@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run && node mcp/server.test.cjs",
+    "test:mcp": "node mcp/server.test.cjs",
     "test:watch": "vitest",
     "discover": "node scripts/discovery-agent.cjs"
   },
