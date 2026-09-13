@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const STORAGE_KEY = 'todos';
 
@@ -21,6 +21,39 @@ export default function App() {
   const [todos, setTodos] = useState(loadTodos);
   const [inputValue, setInputValue] = useState('');
   const [error, setError] = useState('');
+  const isInitialSyncDone = useRef(false);
+
+  useEffect(() => {
+    let ignore = false;
+    if (typeof fetch === 'function') {
+      fetch('/api/todos')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!ignore && Array.isArray(data)) {
+            setTodos(data);
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            } catch (err) {
+              console.error('Failed to save todos to localStorage:', err);
+            }
+          }
+        })
+        .catch(() => {
+          // Fallback gracefully to localStorage
+        })
+        .finally(() => {
+          if (!ignore) {
+            isInitialSyncDone.current = true;
+          }
+        });
+    } else {
+      isInitialSyncDone.current = true;
+    }
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -28,6 +61,19 @@ export default function App() {
     } catch (err) {
       console.error('Failed to save todos to localStorage:', err);
     }
+
+    // Only mirror to backend if the initial load from backend has finished
+    if (!isInitialSyncDone.current || typeof fetch !== 'function') {
+      return;
+    }
+
+    fetch('/api/todos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(todos),
+    }).catch(() => {
+      // Offline/test environment: localStorage preserves state
+    });
   }, [todos]);
 
   const handleAddTodo = (e) => {
