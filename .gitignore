@@ -18,9 +18,10 @@ dist-ssr
 .env.*
 !.env.example
 
-# Testing / Coverage
+# Testing / Coverage / Reports
 coverage
 .vitest
+discovery-report.json
 
 # Editor directories and files
 .vscode/*

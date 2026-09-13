@@ -96,3 +96,14 @@ To preview the production build locally:
 ```bash
 npm run preview
 ```
+
+### 6. Run the Discovery Agent
+
+The Discovery Agent scans the repository for dead code, untested defensive branches, security/maintainability risks, and recommended improvements:
+
+```bash
+npm run discover
+```
+
+This command outputs a formatted human-readable report in your terminal and generates a machine-readable JSON artifact at `discovery-report.json`.
+
