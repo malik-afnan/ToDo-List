@@ -1,0 +1,14 @@
+[
+  {
+    "id": "1789285227758",
+    "text": "Buy groceries via Browser",
+    "completed": true,
+    "completedAt": "2026-09-13T07:40:31.079Z"
+  },
+  {
+    "id": "1789285230507-r1r67",
+    "text": "Task created via MCP Server",
+    "completed": false,
+    "completedAt": null
+  }
+]
