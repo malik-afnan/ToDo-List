@@ -65,7 +65,13 @@ export default function App() {
   const handleToggleComplete = (id) => {
     setTodos((prev) =>
       prev.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+        todo.id === id
+          ? {
+              ...todo,
+              completed: !todo.completed,
+              completedAt: !todo.completed ? new Date().toISOString() : null,
+            }
+          : todo
       )
     );
   };
@@ -108,36 +114,41 @@ export default function App() {
       {todos.length === 0 ? (
         <p className="empty-state">No todos yet. Add one above!</p>
       ) : (
-        <ul className="todo-list">
-          {todos.map((todo) => (
-            <li key={todo.id} className="todo-item">
-              <div className="todo-content">
-                <input
-                  type="checkbox"
-                  className="todo-checkbox"
-                  checked={todo.completed}
-                  onChange={() => handleToggleComplete(todo.id)}
-                  aria-label={`Mark "${todo.text}" as ${
-                    todo.completed ? 'incomplete' : 'complete'
-                  }`}
-                />
-                <span
-                  className={`todo-text ${todo.completed ? 'completed' : ''}`}
+        <>
+          <ul className="todo-list">
+            {todos.map((todo) => (
+              <li key={todo.id} className="todo-item">
+                <label className="todo-content">
+                  <input
+                    type="checkbox"
+                    className="todo-checkbox"
+                    checked={todo.completed}
+                    onChange={() => handleToggleComplete(todo.id)}
+                    aria-label={`Mark "${todo.text}" as ${
+                      todo.completed ? 'incomplete' : 'complete'
+                    }`}
+                  />
+                  <span
+                    className={`todo-text ${todo.completed ? 'completed' : ''}`}
+                  >
+                    {todo.text}
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  className="delete-btn"
+                  onClick={() => handleDeleteTodo(todo.id)}
+                  aria-label={`Delete "${todo.text}"`}
                 >
-                  {todo.text}
-                </span>
-              </div>
-              <button
-                type="button"
-                className="delete-btn"
-                onClick={() => handleDeleteTodo(todo.id)}
-                aria-label={`Delete "${todo.text}"`}
-              >
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
+                  Delete
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="todo-summary" data-testid="todo-summary">
+            {todos.filter((t) => t.completed).length} of {todos.length} completed
+          </div>
+        </>
       )}
     </div>
   );

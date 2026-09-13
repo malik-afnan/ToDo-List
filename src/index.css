@@ -112,6 +112,8 @@ body {
   gap: 10px;
   flex: 1;
   min-width: 0;
+  cursor: pointer;
+  user-select: none;
 }
 
 .todo-checkbox {
@@ -155,3 +157,11 @@ body {
   font-style: italic;
   padding: 16px 0;
 }
+
+.todo-summary {
+  margin-top: 14px;
+  font-size: 0.875rem;
+  color: #6c757d;
+  text-align: right;
+}
+

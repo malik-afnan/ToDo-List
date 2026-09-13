@@ -149,5 +149,96 @@ describe('Todo App', () => {
     await user.type(input, 'N');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
+
+  it('toggles completion when clicking on the todo task text label', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const input = screen.getByPlaceholderText('What do you need to do?');
+    const addButton = screen.getByRole('button', { name: /add/i });
+
+    await user.type(input, 'Clickable Task');
+    await user.click(addButton);
+
+    const checkbox = screen.getByRole('checkbox');
+    const textElement = screen.getByText('Clickable Task');
+
+    expect(checkbox).not.toBeChecked();
+
+    // Click on text directly (label behavior)
+    await user.click(textElement);
+    expect(checkbox).toBeChecked();
+    expect(textElement).toHaveClass('completed');
+
+    // Click text again to toggle off
+    await user.click(textElement);
+    expect(checkbox).not.toBeChecked();
+    expect(textElement).not.toHaveClass('completed');
+  });
+
+  it('tracks completedAt timestamp when completed and resets it when uncompleted', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const input = screen.getByPlaceholderText('What do you need to do?');
+    const addButton = screen.getByRole('button', { name: /add/i });
+
+    await user.type(input, 'Timestamp Task');
+    await user.click(addButton);
+
+    const checkbox = screen.getByRole('checkbox');
+
+    // Initially not completed, completedAt should not be set
+    let saved = JSON.parse(localStorage.getItem('todos'));
+    expect(saved[0].completed).toBe(false);
+    expect(saved[0].completedAt).toBeUndefined();
+
+    // Mark complete
+    await user.click(checkbox);
+    saved = JSON.parse(localStorage.getItem('todos'));
+    expect(saved[0].completed).toBe(true);
+    expect(typeof saved[0].completedAt).toBe('string');
+    expect(new Date(saved[0].completedAt).getTime()).not.toBeNaN();
+
+    // Mark incomplete
+    await user.click(checkbox);
+    saved = JSON.parse(localStorage.getItem('todos'));
+    expect(saved[0].completed).toBe(false);
+    expect(saved[0].completedAt).toBeNull();
+  });
+
+  it('displays and updates the completion summary counter accurately', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const input = screen.getByPlaceholderText('What do you need to do?');
+    const addButton = screen.getByRole('button', { name: /add/i });
+
+    // Initially with 0 todos, summary is not rendered
+    expect(screen.queryByTestId('todo-summary')).not.toBeInTheDocument();
+
+    // Add 2 todos
+    await user.type(input, 'Task One');
+    await user.click(addButton);
+    await user.type(input, 'Task Two');
+    await user.click(addButton);
+
+    const summary = screen.getByTestId('todo-summary');
+    expect(summary).toHaveTextContent('0 of 2 completed');
+
+    // Complete first task
+    const checkboxes = screen.getAllByRole('checkbox');
+    await user.click(checkboxes[0]);
+    expect(summary).toHaveTextContent('1 of 2 completed');
+
+    // Complete second task
+    await user.click(checkboxes[1]);
+    expect(summary).toHaveTextContent('2 of 2 completed');
+
+    // Uncheck first task
+    await user.click(checkboxes[0]);
+    expect(summary).toHaveTextContent('1 of 2 completed');
+  });
 });
+
 
